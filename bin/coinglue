@@ -185,7 +185,7 @@ async function _start (debug) {
         cwd: process.env.CGDIR,
         stdio: ['ignore', process.stdout, process.stderr]
       };
-      const jsfile = ['index.js'];
+      const jsfile = ['--expose-gc', 'index.js'];
       if (!debug) {
         await fs.ensureFile(cglog);
         await fs.ensureFile(cgerr);

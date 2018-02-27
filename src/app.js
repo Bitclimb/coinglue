@@ -39,4 +39,5 @@ app.start = async () => {
     await require('./services/ethblockManager')();
   });
 };
+
 module.exports = app;
