@@ -5,7 +5,7 @@ const hookpath = `${process.env.CGDIR}/src/config/general/hook.js`;
 const _setHook = exports.setHook = async () => {
   const hookhost = readlineSync.question('Enter the api hook full url: ');
   const hookpw = readlineSync.question('Enter the api hook secret/password: ', { hideEchoBack: true });
-  fs.writeFileSync(hookpath, `module.exports = {host:'${hookhost}',pass:'${hookpw}'}`);
+  await fs.outputFile(hookpath, `module.exports = {host:'${hookhost}',pass:'${hookpw}'}`);
   return true;
 };
 
