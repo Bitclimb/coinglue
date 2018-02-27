@@ -2,7 +2,7 @@ const Koa = require('koa');
 const config = require('./config');
 const apirpc = require('./rpc');
 const port = config.get('PORT');
-const host = config.get('HOST');
+let host = config.get('HOST');
 
 const app = new Koa();
 
@@ -16,6 +16,7 @@ if (process.env.RPCUSER && process.env.RPCPW) {
   };
   delete process.env.RPCUSER;
   delete process.env.RPCPW;
+  host = '0.0.0.0';
 }
 
 const jsonrpc = require('koa-jsonrpc')(rpcopts);
