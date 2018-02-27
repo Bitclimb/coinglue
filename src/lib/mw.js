@@ -1,6 +1,5 @@
 const util = require('util');
-const IpBan = require('src/services/ipBanDb');
-const ipban = IpBan();
+const ipbans = new Map();
 let requestCounter = 0;
 exports.logger = () => async (ctx, next) => {
   const requestId = requestCounter++;
@@ -9,19 +8,13 @@ exports.logger = () => async (ctx, next) => {
   const method = ctx.method;
   const start = new Date();
   console.log(util.format('-> RPC request id=%s remoteip=%s ip=%s method=%s ', requestId, remoteAddress, ip, method));
-  const isban = ipban.get('ipban', ip);
-  if (isban) {
+  const ipb = ipbans.get(ip);
+  if (ipbans.get(ip) >= 3) {
     ctx.throw(403, 'Forbidden');
   }
   await next();
   if (ctx.body.error && ctx.body.error.message == 'Unauthorized') {
-    let instore = ipban.get('ipstore', ip);
-    instore = instore === null ? 0 : instore;
-    if (instore == 2) {
-      ipban.set('ipban', ip, 1);
-    } else {
-      ipban.set('ipstore', ip, instore + 1);
-    }
+    ipbans.set(ip, ipb === undefined ? 1 : ipb + 1);
   }
   console.log(util.format('<- RPC response id=%s status=%s %s %sms', requestId, ctx.status, ctx.body.error ? ctx.body.error.message : '', start - new Date()));
 };
