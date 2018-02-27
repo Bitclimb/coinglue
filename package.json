@@ -30,7 +30,7 @@
     "bitcoin": "^3.0.1",
     "bluebird": "^3.5.1",
     "chalk": "^2.3.0",
-    "coinblocks": "^1.0.1",
+    "coinblocks": "^1.0.2",
     "coinjs-lib": "^1.0.1",
     "coinnames": "^1.0.1",
     "coinup": "^1.0.0",
