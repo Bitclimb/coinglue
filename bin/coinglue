@@ -84,8 +84,7 @@ program
     await Promise.all([fs.remove(`${process.env.CGDIR}/.logs`),
       fs.remove(`${process.env.CGDIR}/src/config/dev/seed.js`),
       fs.remove(`${process.env.CGDIR}/src/config/prod/seed.js`),
-      fs.remove(`${process.env.CGDIR}/src/config/general/coins.js`),
-      fs.remove(`${process.env.CGDIR}/src/config/general/hook.js`),
+      fs.remove(`${process.env.CGDIR}/src/config/general/`),
       fs.remove(`${process.env.CGDIR}/src/services/dev/`),
       fs.remove(`${process.env.CGDIR}/src/services/prod/`)
     ]);
@@ -102,7 +101,7 @@ program
     console.log('Restart the Wallet service.');
   });
 program
-  .command('remove')
+  .command('removecoin')
   .description('remove a coin')
   .action(async () => {
     await _stop();
@@ -120,10 +119,20 @@ program
     console.log('Restart the Wallet service.');
   });
 program
+  .command('rpc')
+  .description('add/replace rpc config')
+  .action(async () => {
+    await _stop();
+    const c = require('build/checkRpcSecure');
+    await c.setRpc();
+    console.log('Restart the Wallet service.');
+  });
+
+program
   .command('list')
   .description('list all added coins')
   .action(async () => {
-    const c = require(`${process.env.CGDIR}/src/config/general/coins.js`);
+    const c = require('src/config/general/coins.js');
     console.log(Object.keys(c));
   });
 program
@@ -165,7 +174,7 @@ async function _start (debug) {
     if (isrunning) {
       return false;
     }
-    require('build/checkRpcSecure')();
+    require('build/checkRpcSecure').check();
     const checkseed = await require('build/checkSeed')();
     const checkcoins = await require('build/checkCoins').check();
     const checkhook = await require('build/checkHook').check();
@@ -188,7 +197,6 @@ async function _start (debug) {
       }
       const subprocess = spawn('node', jsfile, subopts);
       await fs.outputFile('/tmp/coinglue.pid', subprocess.pid);
-
       return subprocess;
     } else {
       return false;
