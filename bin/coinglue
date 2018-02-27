@@ -1,0 +1,235 @@
+#!/usr/bin/env node
+
+const path = require('path');
+process.env.CGDIR = path.resolve(__dirname, '../');
+process.env.NODE_ENV = process.env.NODE_ENV || 'production';
+require('app-module-path').addPath(`${process.env.CGDIR}/`);
+const fs = require('fs-extra');
+/* console */
+const chalk = require('chalk');
+const colors = {
+  stamp: 'cyan',
+  label (l) {
+    if (l === '[LOG]') {
+      return chalk.green(l);
+    } else {
+      return chalk.redBright(l);
+    }
+  }
+};
+require('console-stamp')(console, { exclude: ['info'], pattern: 'mm-dd-yyyy HH:MM:ss', colors });
+/* main modules */
+const pkgjson = require('../package.json');
+
+const program = require('commander');
+const { spawn } = require('child_process');
+const checkProc = require('build/checkProcess');
+const cglog = `${process.env.CGDIR}/.logs/coinglue.log`;
+const cgerr = `${process.env.CGDIR}/.logs/coinglue.err`;
+
+program
+  .usage('<actions> [options]')
+  .version(pkgjson.version);
+
+program
+  .command('start')
+  .description('starts the wallet service,use --debug for debugging mode')
+  .option('--debug')
+  .action(async ({ debug }) => {
+    const subProc = await _start(debug);
+    if (subProc) {
+      if (!debug) {
+        subProc.on('close', (d) => {
+          if (d == 1) {
+            console.log('Wallet service failed to start. Check the logs for reports');
+          }
+        });
+
+        subProc.on('message', ([code, msg]) => {
+          if (code === 0) {
+            console.log(msg);
+            subProc.unref();
+            process.exit(0);
+          } else if (code === 1) {
+            console.log(msg);
+          } else if (code === 2) {
+            console.error(msg);
+          }
+        });
+      } else {
+        console.log('Running on debugging mode, CTRL+C to exit');
+      }
+    } else {
+      console.log('Sorry only once instance of this wallet is allowed');
+    }
+  });
+program
+  .command('stop')
+  .alias('kill')
+  .description('stops the wallet service')
+  .action(async () => {
+    const isStop = await _stop();
+    if (isStop) {
+      console.log('Wallet service stopped');
+    } else {
+      console.log('Wallet service is not running');
+    }
+  });
+program
+  .command('clear')
+  .alias('reset')
+  .description('clears all configurations,seeds,and database. Dangerous! Use with care!')
+  .action(async () => {
+    await _stop();
+    await Promise.all([fs.remove(`${process.env.CGDIR}/.logs`),
+      fs.remove(`${process.env.CGDIR}/src/config/dev/seed.js`),
+      fs.remove(`${process.env.CGDIR}/src/config/prod/seed.js`),
+      fs.remove(`${process.env.CGDIR}/src/config/general/coins.js`),
+      fs.remove(`${process.env.CGDIR}/src/config/general/hook.js`),
+      fs.remove(`${process.env.CGDIR}/src/services/dev/`),
+      fs.remove(`${process.env.CGDIR}/src/services/prod/`)
+    ]);
+
+    console.log('Reset finished. Restart the wallet service.');
+  });
+program
+  .command('add')
+  .description('add a new coin')
+  .action(async () => {
+    await _stop();
+    const c = require('build/checkCoins');
+    await c._add();
+    console.log('Restart the Wallet service.');
+  });
+program
+  .command('remove')
+  .description('remove a coin')
+  .action(async () => {
+    await _stop();
+    const c = require('build/checkCoins');
+    await c._remove();
+    console.log('Restart the Wallet service.');
+  });
+program
+  .command('hook')
+  .description('add/replace hook config')
+  .action(async () => {
+    await _stop();
+    const c = require('build/checkHook');
+    await c.setHook();
+    console.log('Restart the Wallet service.');
+  });
+program
+  .command('list')
+  .description('list all added coins')
+  .action(async () => {
+    const c = require(`${process.env.CGDIR}/src/config/general/coins.js`);
+    console.log(Object.keys(c));
+  });
+program
+  .command('restart')
+  .alias('reload')
+  .description('restarts/reloads the wallet service')
+  .action(async () => {
+    await _stop();
+    await _start();
+    console.log('Wallet service restarted');
+  });
+program
+  .command('logs')
+  .description('prints out the wallet service logs')
+  .action(_logs);
+program
+  .command('status')
+  .description('display the status of the wallet service')
+  .action(async () => {
+    const pid = await _status();
+    if (pid) {
+      console.log('Wallet serivce is running on PID', pid);
+    } else {
+      console.log('Wallet serivce is not running');
+    }
+  });
+
+program.parse(process.argv);
+
+if (program.args.length === 0) {
+  program.help();
+}
+
+/* Actions */
+
+async function _start (debug) {
+  try {
+    const isrunning = await checkProc('coinglue');
+    if (isrunning) {
+      return false;
+    }
+    require('build/checkRpcSecure')();
+    const checkseed = await require('build/checkSeed')();
+    const checkcoins = await require('build/checkCoins').check();
+    const checkhook = await require('build/checkHook').check();
+    if (checkseed && checkcoins && checkhook) {
+      const subopts = {
+        env: process.env,
+        windowsHide: true,
+        cwd: process.env.CGDIR,
+        stdio: ['ignore', process.stdout, process.stderr]
+      };
+      const jsfile = ['index.js'];
+      if (!debug) {
+        await fs.ensureFile(cglog);
+        await fs.ensureFile(cgerr);
+        const out = fs.openSync(cglog, 'a');
+        const err = fs.openSync(cgerr, 'a');
+        subopts.detached = true;
+        subopts.stdio = ['ipc', out, err];
+        jsfile.push('--no-color');
+      }
+      const subprocess = spawn('node', jsfile, subopts);
+      await fs.outputFile('/tmp/coinglue.pid', subprocess.pid);
+
+      return subprocess;
+    } else {
+      return false;
+    }
+  } catch (err) {
+    console.error(err.stack || err.message);
+    process.exit(1);
+  }
+}
+
+async function _status () {
+  try {
+    const pid = await checkProc('coinglue');
+    return pid;
+  } catch (err) {
+    console.error(err.stack || err.message);
+    process.exit(1);
+  }
+}
+
+async function _stop () {
+  try {
+    const pid = await checkProc('coinglue');
+    if (!pid) {
+      return false;
+    }
+    process.kill(pid, 'SIGHUP');
+    return true;
+  } catch (err) {
+    console.error(err.stack || err.message);
+    process.exit(1);
+  }
+}
+
+function _logs () {
+  const tail = spawn('tail', ['-f', cglog, cgerr]);
+  tail.stdout.on('data', (data) => {
+    console.log(`LOG: ${data}`);
+  });
+
+  tail.stderr.on('data', (data) => {
+    console.log(`ERR: ${data}`);
+  });
+}

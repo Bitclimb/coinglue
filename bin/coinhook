@@ -1,0 +1,41 @@
+#!/usr/bin/env node
+
+const logfile = '/var/log/coinhook.log';
+const config = require('../src/config');
+const crypto = require('crypto');
+const http = require('http');
+const url = require('url');
+const fs = require('fs');
+const hook = config.get('hook');
+if (!hook) {
+  fs.appendFileSync(logfile, 'Hook api not found');
+  process.exit(0);
+}
+if (process.argv.length < 5) {
+  fs.appendFileSync(logfile, `Got ${process.argv.length} arguments (not 5)`);
+  process.exit(1);
+}
+const TRX = process.argv[2];
+const COIN = process.argv[3];
+const SECRET = process.argv[4];
+const postData = JSON.stringify({ tx: TRX, coin: COIN });
+const HMACSIG = crypto.createHmac('sha1', SECRET).update(postData).digest('hex');
+
+const options = url.parse(hook.host);
+Object.assign(options, {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json',
+    'Content-Length': Buffer.byteLength(postData),
+    'X-Coinworks-Sig': HMACSIG,
+    'User-Agent': 'Coinworks-WebHook'
+  }
+});
+const req = http.request(options, () => {});
+
+req.on('error', e => {
+  fs.appendFileSync(logfile, `problem with request: ${e.message}`);
+});
+
+req.write(postData);
+req.end();

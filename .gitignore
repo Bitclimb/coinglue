@@ -1,0 +1,15 @@
+package-lock.json
+.env
+node_modules/
+test.js
+src/config/dev/seed.js
+src/config/prod/seed.js
+src/config/general/coins.js
+src/config/general/hook.js
+.logs/
+.nyc_output/
+coverage/
+rpc.json
+src/services/dev/
+src/services/prod/
+test/

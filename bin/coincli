@@ -1,0 +1,47 @@
+#!/usr/bin/env node
+
+const needle = require('needle');
+const program = require('commander');
+const pkgjson = require('../package.json');
+const rpcjson = require('../rpc.json');
+
+program.on('--help', () => {
+  console.log('');
+  console.log('  Methods:');
+  for (const m of rpcjson.methods) {
+    console.log(`    ${m}`);
+  }
+  console.log('');
+  console.log('  Parameters:');
+  console.log('    -Atleast 1 paramater is required which is the currency/coin symbol');
+  console.log('');
+  console.log('  Example:');
+  console.log('    $ coincli getinfo btc');
+  console.log('    $ coincli getaccount eth 4');
+  console.log('');
+});
+
+program
+  .usage('<method> <parameters>')
+  .version(pkgjson.version)
+  .parse(process.argv);
+
+if (!rpcjson.methods.includes(program.args[0]) || program.args.length < 2) {
+  program.outputHelp();
+} else {
+  const method = program.args.shift();
+  const params = program.args;
+  const payload = {
+    method,
+    params,
+    id: 'coincli',
+    jsonrpc: '2.0'
+  };
+  let options = {};
+  if (rpcjson.token) {
+    options.headers = { 'Authorization': `Token ${rpcjson.token}` };
+  }
+  needle.post(rpcjson.uri, JSON.stringify(payload), options, (err, resp) => {
+    console.log(resp.body.result);
+  });
+}
