@@ -1,9 +1,11 @@
 const dir = require('node-dir');
+const fs = require('fs-extra');
 const path = require('path');
 const assert = require('assert');
 let all = {};
 
 function getConfigs (foldername) {
+  fs.ensureDirSync(foldername);
   const files = dir.files(`${__dirname}/${foldername}`, { sync: true });
   if (files) {
     for (const f of files) {
