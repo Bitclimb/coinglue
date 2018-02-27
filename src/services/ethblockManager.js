@@ -6,14 +6,18 @@ const AddrManager = require('./addressManager');
 const addrmanager = AddrManager('eth');
 const config = require('../config');
 const hook = config.get('hook');
+const state = require('src/lib/state');
 const coinhookpath = `${process.env.CGDIR}/bin/coinhook`;
 const Promise = require('bluebird');
 const { sendethtomaster } = require('../rpc');
-
 const blockdb = blockDb('/ethblocks');
 const blockevent = Blocks();
 
 module.exports = async () => {
+  if (state.get('eth_rpc') == 'down') {
+    blockdb.close();
+    return console.warn('Ethereum wallet is down,stopping block listener');
+  }
   blockevent.on('block', async ({ current, data }) => {
     if (blockdb.get() < current) {
       console.log('New block found for eth', current);

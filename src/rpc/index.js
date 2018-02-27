@@ -10,7 +10,7 @@ const config = require('src/config');
 const state = require('src/lib/state');
 
 const checkState = async coin => {
-  const s = state.get(`${coin}_rpc`);
+  let s = state.get(`${coin}_rpc`);
   const { host, port } = config.get('coins')[coin].rpc;
   let isup = await coinup(`${host}:${port}`) == true ? 'up' : 'down';
   if (isup !== s) {
@@ -19,6 +19,7 @@ const checkState = async coin => {
       isup = true;
     } else if (s == 'up' && isup == 'down') {
       console.warn(`${coin} wallet is unreachable`);
+      state.set(`${coin}_rpc`, isup);
       isup = false;
     }
   }
