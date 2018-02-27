@@ -9,13 +9,13 @@ const app = new Koa();
 const rpcopts = {
   limit: '1mb'
 };
-if (process.env.RPCUSER && process.env.RPCPW) {
+const rpcuser = config.get('rpc.rpcuser');
+const rpcpass = config.get('rpc.rpcpass');
+if (rpcuser && rpcpass) {
   rpcopts.auth = {
-    username: process.env.RPCUSER,
-    password: process.env.RPCPW
+    username: rpcuser,
+    password: rpcpass
   };
-  delete process.env.RPCUSER;
-  delete process.env.RPCPW;
 } else {
   listenOpts.push(host);
 }
