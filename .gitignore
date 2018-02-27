@@ -4,8 +4,7 @@ node_modules/
 test.js
 src/config/dev/seed.js
 src/config/prod/seed.js
-src/config/general/coins.js
-src/config/general/hook.js
+src/config/general/
 .logs/
 .nyc_output/
 coverage/
