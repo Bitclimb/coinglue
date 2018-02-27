@@ -3,7 +3,7 @@ const config = require('./config');
 const apirpc = require('./rpc');
 const port = config.get('PORT');
 let host = config.get('HOST');
-
+const listenOpts = [port];
 const app = new Koa();
 
 const rpcopts = {
@@ -16,7 +16,8 @@ if (process.env.RPCUSER && process.env.RPCPW) {
   };
   delete process.env.RPCUSER;
   delete process.env.RPCPW;
-  host = '0.0.0.0';
+} else {
+  listenOpts.push(host);
 }
 
 const jsonrpc = require('koa-jsonrpc')(rpcopts);
@@ -29,7 +30,7 @@ app.use(jsonrpc.app());
 
 app.start = async () => {
   await require('./init')(rpcopts);
-  app.listen(port, host, async () => {
+  app.listen(...listenOpts, async () => {
     let msg1 = `Coinglue is up: rpc: ${host}:${port} and using process id: ${process.pid}`;
     console.log(msg1);
     if (process.send) {
