@@ -63,7 +63,7 @@ class AddrManager {
     this.db.set('address', address, { accountId: accid, index });
     this.db.set('addressIndex', accid, index);
     this.db.set('addressMap', `acc${accid}_i${index}`, address);
-    return { address, privkey };
+    return { address, privkey, index };
   }
   getAddressInfo (address) {
     return this.db.get('address', address);
@@ -76,7 +76,7 @@ class AddrManager {
     const addr = this.db.get('addressMap', `acc${accid}_i${lastIndex}`);
     const addrPair = this.getAddressPair(accid, lastIndex);
 
-    return { address: addr, privkey: addrPair.privkey };
+    return { address: addr, privkey: addrPair.privkey, index: lastIndex };
   }
   getAllAddress () {
     return this.db.getAll('addressMap');
