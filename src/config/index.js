@@ -11,7 +11,6 @@ function getConfigs (foldername) {
   if (files) {
     for (const f of files) {
       const fname = path.basename(f, '.js');
-      console.log(`Loading ${fname} configurations...`);
       all[fname] = require(f);
     }
   }
