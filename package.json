@@ -1,6 +1,6 @@
 {
   "name": "coinglue",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "a multi-crypto currency framework that glues other wallets together for a centralized api",
   "main": "index.js",
   "bin": {
