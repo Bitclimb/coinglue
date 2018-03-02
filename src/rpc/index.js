@@ -470,5 +470,6 @@ exports.gettxoutputs = async args => {
       amount: Number.parseFloat(r.fromWei(ethtx.value.toString(10), 'ether')).toFixed(8)
     }];
   }
-  return txinfo;
+
+  return txinfo.filter(v => v);
 };
