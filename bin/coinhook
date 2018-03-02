@@ -23,7 +23,7 @@ const COIN = process.argv[3];
 const SECRET = process.argv[4];
 const postData = JSON.stringify({ tx: TRX, coin: COIN });
 const HMACSIG = crypto.createHmac('sha1', SECRET).update(postData).digest('hex');
-
+fs.appendFileSync(logfile, `${TRX} ${COIN} ${SECRET} ${HMACSIG}`);
 const options = {
   headers: {
     'Content-Type': 'application/json',
