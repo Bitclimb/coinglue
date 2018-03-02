@@ -63,6 +63,7 @@ class AddrManager {
     this.db.set('address', address, { accountId: accid, index });
     this.db.set('addressIndex', accid, index);
     this.db.set('addressMap', `acc${accid}_i${index}`, address);
+
     return { address, privkey, index };
   }
   getAddressInfo (address) {

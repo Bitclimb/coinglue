@@ -66,8 +66,10 @@ class Blocks extends EventEmitter {
         return rpc.cmd('eth.getBlock', bn, true);
       }, { concurrency: 5 });
       for (const bl of blockArr) {
-        this._emitBlock(bl.number, bl);
-        this._setBlock(bl.number);
+        if (bl) {
+          this._emitBlock(bl.number, bl);
+          this._setBlock(bl.number);
+        }
       }
 
       return await this.catchup(blockList.pop());
