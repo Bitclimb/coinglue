@@ -445,7 +445,7 @@ exports.gettxoutputs = async args => {
   const [r, fam] = rpc.connect(parsed.coin);
   if (fam == 'btc') {
     try {
-      const btctx = await r.cmd('gettransaction ', txid);
+      const btctx = await r.cmd('gettransaction', txid);
       txinfo = btctx.details.map(tx => {
         if (tx.category === 'receive') {
           return {
