@@ -307,8 +307,8 @@ const getnewaddress = exports.getnewaddress = async args => {
   }
   const [r, fam] = rpc.connect(parsed.coin);
   const addrManager = AddrManager(parsed.coin);
-  const { address, privkey } = addrManager.getNewAddress(parsed.params[0]);
-  if (address && privkey) {
+  const { address, privkey, index } = addrManager.getNewAddress(parsed.params[0]);
+  if (address && privkey && index) {
     if (fam == 'btc') {
       try {
         console.log('Importing to wallet', address);
@@ -323,7 +323,7 @@ const getnewaddress = exports.getnewaddress = async args => {
         return 'Internal error occured';
       }
     }
-    return { address, privkey };
+    return { address, privkey, index };
   }
   console.error('Cannot get new address pair using parameters', parsed.params[0]);
   return 'Internal error occured';
