@@ -60,7 +60,7 @@ class Blocks extends EventEmitter {
         return;
       }
       console.log('Catching up for new blocks for eth current:', block, 'latest:', latestblock);
-      const blockList = Array.from({ length: latestblock - block }, (v, i) => block + (i + 1));
+      const blockList = Array.from({ length: 10 }, (v, i) => block + (i + 1));
       const blockArr = await Promise.map(blockList, bn => {
         console.log('Syncing eth block', bn);
         return rpc.cmd('eth.getBlock', bn, true);
@@ -69,6 +69,7 @@ class Blocks extends EventEmitter {
         this._emitBlock(bl.number, bl);
         this._setBlock(bl.number);
       }
+
       return await this.catchup(blockList.pop());
     } catch (err) {
       console.error(err.stack || err.message);
