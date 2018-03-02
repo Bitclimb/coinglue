@@ -6,6 +6,8 @@ const EventEmitter = require('eventemitter3');
 const singleton = require('src/lib/singleton');
 const config = require('src/config');
 const coins = config.get('coins');
+const maxretries = 5;
+let retry = 0;
 const coinblockOpts = {
   coin: 'eth',
   rpc: coins.eth.rpc,
@@ -52,6 +54,16 @@ class Blocks extends EventEmitter {
       const [rpc] = rpcConn.connect('eth');
 
       const latestblock = await rpc.cmd('eth.getBlockNumber');
+      if (!Number.isInteger(latestblock)) {
+        if (retry >= maxretries) {
+          console.warn('Could not get latest block number after ', retry, 'retries.');
+          return;
+        }
+        retry = retry + 1;
+        console.warn('Retrying at block', block, 'retry #', retry);
+        return await this.catchup(block);
+      }
+      retry = 0;
       if (block == null) {
         blockdb.set(latestblock);
         block = latestblock;
@@ -64,7 +76,7 @@ class Blocks extends EventEmitter {
       const blockArr = await Promise.map(blockList, bn => {
         console.log('Syncing eth block', bn);
         return rpc.cmd('eth.getBlock', bn, true);
-      }, { concurrency: 5 });
+      }, { concurrency: 2 });
       for (const bl of blockArr) {
         if (bl) {
           this._emitBlock(bl.number, bl);
