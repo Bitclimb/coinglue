@@ -458,6 +458,7 @@ exports.gettxoutputs = async args => {
         }
       });
     } catch (err) {
+      console.error(err);
       return 'Invalid or non-wallet transaction id';
     }
   } else if (fam == 'eth') {
