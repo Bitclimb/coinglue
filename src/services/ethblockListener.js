@@ -68,15 +68,15 @@ class Blocks extends EventEmitter {
         blockdb.set(latestblock);
         block = latestblock;
       }
-      if (block === latestblock) {
+      if (block >= latestblock) {
         return;
       }
       console.log('Catching up for new blocks for eth current:', block, 'latest:', latestblock);
       const blockList = Array.from({ length: 10 }, (v, i) => block + (i + 1));
-      const blockArr = await Promise.map(blockList, bn => {
+      const blockArr = await Promise.map(blockList, async bn => {
         console.log('Syncing eth block', bn);
-        return rpc.cmd('eth.getBlock', bn, true);
-      }, { concurrency: 2 });
+        return await rpc.cmd('eth.getBlock', bn, true);
+      }, { concurrency: 5 });
       for (const bl of blockArr) {
         if (bl) {
           this._emitBlock(bl.number, bl);
