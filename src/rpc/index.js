@@ -463,22 +463,20 @@ exports.listtransactions = async args => {
     const blockdb = blockDb('/ethblocks');
     const currblock = blockdb.get();
     try {
-      for (let i = currblock - count; i < currblock; i++) {
-        let txblk = await r.cmd('eth.getBlock', i, true);
-        txblk = txblk.transactions.filter(txs => {
-          if (txs.to) {
-            return addrManager.getAddressInfo(txs.to);
-          }
-        });
-        if (txblk.length > 0) {
-          for (const ethtx of txblk) {
-            txinfo.push({
-              confirmation: ethtx.blockNumber == null ? 0 : 1,
-              txid: ethtx.hash,
-              address: ethtx.to,
-              amount: Number.parseFloat(r.fromWei(ethtx.value.toString(10), 'ether')).toFixed(8)
-            });
-          }
+      let txblk = await r.cmd('eth.getBlock', currblock - count, true);
+      txblk = txblk.transactions.filter(txs => {
+        if (txs.to) {
+          return addrManager.getAddressInfo(txs.to);
+        }
+      });
+      if (txblk.length > 0) {
+        for (const ethtx of txblk) {
+          txinfo.push({
+            confirmation: ethtx.blockNumber == null ? 0 : 1,
+            txid: ethtx.hash,
+            address: ethtx.to,
+            amount: Number.parseFloat(r.fromWei(ethtx.value.toString(10), 'ether')).toFixed(8)
+          });
         }
       }
     } catch (err) {
