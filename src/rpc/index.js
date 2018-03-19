@@ -8,7 +8,7 @@ const estimatefee = require('./connect/estimateFee');
 const utils = require('src/lib/utils');
 const config = require('src/config');
 const state = require('src/lib/state');
-
+const blockDb = require('src/services/ethblockDb');
 const checkState = async coin => {
   let s = state.get(`${coin}_rpc`);
   const { host, port } = config.get('coins')[coin].rpc;
@@ -431,7 +431,63 @@ exports.validateaddress = async args => {
 
   return payload;
 };
-
+exports.listtransactions = async args => {
+  const parsed = parser('gettxoutputs', args, 2);
+  if (errCodes.includes(parsed)) {
+    return errMsg[parsed];
+  }
+  if (!await checkState(parsed.coin)) {
+    return errMsg.wdr;
+  }
+  let txinfo = [];
+  // if coin is eth, the count is considered the last 10 blocks.
+  const count = parsed.params[0];
+  const [r, fam] = rpc.connect(parsed.coin);
+  const addrManager = AddrManager(parsed.coin);
+  if (fam == 'btc') {
+    try {
+      txinfo = await r.cmd('listtransactions', '*', count);
+      txinfo = txinfo.filter((tx) => tx.category == 'receive');
+      txinfo = txinfo.map(tx => ({
+        address: tx.address,
+        txid: tx.txid,
+        confirmation: tx.confirmations,
+        vout: tx.vout,
+        amount: tx.amount
+      }));
+    } catch (err) {
+      console.error(err.stack || err.message);
+      return false;
+    }
+  } else if (fam == 'eth') {
+    const blockdb = blockDb('/ethblocks');
+    const currblock = blockdb.get();
+    try {
+      for (let i = currblock - count; i < currblock; i++) {
+        let txblk = await r.cmd('eth.getBlock', i, true);
+        txblk = txblk.transactions.filter(txs => {
+          if (txs.to) {
+            return addrManager.getAddressInfo(txs.to);
+          }
+        });
+        if (txblk.length > 0) {
+          for (const ethtx of txblk) {
+            txinfo.push({
+              confirmation: ethtx.blockNumber == null ? 0 : 1,
+              txid: ethtx.hash,
+              address: ethtx.to,
+              amount: Number.parseFloat(r.fromWei(ethtx.value.toString(10), 'ether')).toFixed(8)
+            });
+          }
+        }
+      }
+    } catch (err) {
+      console.error(err.stack || err.message);
+      return false;
+    }
+  }
+  return txinfo;
+};
 exports.gettxoutputs = async args => {
   const parsed = parser('gettxoutputs', args, 2);
   if (errCodes.includes(parsed)) {
