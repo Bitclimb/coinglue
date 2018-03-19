@@ -431,6 +431,33 @@ exports.validateaddress = async args => {
 
   return payload;
 };
+exports.gettx = async args => {
+  const parsed = parser('gettx', args, 3);
+  if (errCodes.includes(parsed)) {
+    return errMsg[parsed];
+  }
+  if (!await checkState(parsed.coin)) {
+    return errMsg.wdr;
+  }
+  const [r, fam] = rpc.connect(parsed.coin);
+  const txid = parsed.params[0];
+  let txinfo;
+  if (fam == 'btc') {
+    try {
+      txinfo = await r.cmd('gettransaction', txid);
+    } catch (e) {
+      return false;
+    }
+  } else if (fam == 'eth') {
+    txinfo = await r.cmd('eth.getTransaction', txid);
+    if (txinfo.blockNumber && txinfo.blockHash) {
+      txinfo.confirmation = 1;
+    } else {
+      txinfo.confirmation = 0;
+    }
+  }
+  return txinfo;
+};
 
 exports.gettxoutputs = async args => {
   const parsed = parser('gettxoutputs', args, 2);
