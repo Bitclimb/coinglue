@@ -19,6 +19,7 @@ if (!process.env.CGDIR) {
 process.title = 'coinglue';
 const j = schedule.scheduleJob('* * * * *', () => {
   if (global.gc) {
+    console.log('Running garbage collection');
     global.gc();
   } else {
     j.cancel();
