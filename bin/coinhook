@@ -24,7 +24,7 @@ const SECRET = process.argv[4];
 const postData = JSON.stringify({ tx: TRX, coin: COIN });
 const HMACSIG = crypto.createHmac('sha1', SECRET).update(postData).digest('hex');
 const logfile = path.resolve(logdir, `coinhook_${COIN}.log`);
-fs.ensureFileSync();
+fs.ensureFileSync(logfile);
 
 fs.appendFileSync(logfile, `[${user}] [${new Date()}] [LOG] ${TRX} ${COIN} ${HMACSIG}\n`);
 const options = {
