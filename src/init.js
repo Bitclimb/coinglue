@@ -26,12 +26,8 @@ module.exports = async (rpcopts) => {
     sendToParent(1, `Checking ${c} rpc connection...`);
     const [connection] = rpcCon.connect(c);
 
-    let isErr;
-    if (c !== 'eth') {
-      isErr = await connection._updateState();
-    } else {
-      isErr = connection._updateState();
-    }
+    const isErr = await connection._updateState();
+
     if (isErr) {
       console.error(isErr);
       sendToParent(2, isErr);
