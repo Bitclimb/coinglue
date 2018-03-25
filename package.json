@@ -6,7 +6,8 @@
   "bin": {
     "coinglue": "./bin/coinglue",
     "coincli": "./bin/coincli",
-    "coinhook": "./bin/coinhook"
+    "coinhook": "./bin/coinhook",
+    "coinblock": "./bin/coinblock"
   },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
@@ -27,7 +28,7 @@
   "dependencies": {
     "app-module-path": "^2.2.0",
     "bip44-constants": "^4.0.1",
-    "bitcoin": "^3.0.1",
+    "bitcoin-core": "^2.0.0",
     "bluebird": "^3.5.1",
     "chalk": "^2.3.0",
     "coinblocks": "^1.0.2",
