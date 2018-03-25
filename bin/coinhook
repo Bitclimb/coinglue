@@ -2,20 +2,20 @@
 
 const needle = require('needle');
 const path = require('path');
-const logfile = path.resolve(__dirname, '../.logs/coinhook.log');
+const logdir = '/var/log/coinglue';
+const errlog = path.resolve(logdir, `coinhook_${Date.now()}.err`);
+const user = process.env.USER;
 const config = require('../src/config');
 const crypto = require('crypto');
-
 const fs = require('fs-extra');
 const hook = config.get('hook');
-fs.ensureFileSync(logfile);
 
 if (!hook) {
-  fs.appendFileSync(logfile, 'Hook api not found');
+  fs.appendFileSync(errlog, `[${user}] [${new Date()}] Hook api not found`);
   process.exit(0);
 }
 if (process.argv.length < 5) {
-  fs.appendFileSync(logfile, `Got ${process.argv.length} arguments (not 5)`);
+  fs.appendFileSync(errlog, `[${user}] [${new Date()}] Got ${process.argv.length} arguments (not 5)`);
   process.exit(1);
 }
 const TRX = process.argv[2];
@@ -23,7 +23,10 @@ const COIN = process.argv[3];
 const SECRET = process.argv[4];
 const postData = JSON.stringify({ tx: TRX, coin: COIN });
 const HMACSIG = crypto.createHmac('sha1', SECRET).update(postData).digest('hex');
-fs.appendFileSync(logfile, `${TRX} ${COIN} ${SECRET} ${HMACSIG}`);
+const logfile = path.resolve(logdir, `coinhook_${COIN}.log`);
+fs.ensureFileSync();
+
+fs.appendFileSync(logfile, `[${user}] [${new Date()}] [LOG] ${TRX} ${COIN} ${HMACSIG}\n`);
 const options = {
   headers: {
     'Content-Type': 'application/json',
@@ -34,8 +37,8 @@ const options = {
 };
 needle.post(hook.host, postData, options, (err, resp) => {
   if (err) {
-    fs.appendFileSync(logfile, `problem with request: ${err.message}`);
+    fs.appendFileSync(logfile, `[${user}] [${new Date()}] [ERROR] Problem with request: ${err.message}\n`);
   } else {
-    fs.appendFileSync(logfile, `successful request: ${JSON.stringify(resp.body)}`);
+    fs.appendFileSync(logfile, `[${user}] [${new Date()}] [LOG] Successful request: ${JSON.stringify(resp.body)}`);
   }
 });
