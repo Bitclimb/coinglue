@@ -31,7 +31,7 @@
     "bitcoin-core": "^2.0.0",
     "bluebird": "^3.5.1",
     "chalk": "^2.3.0",
-    "coinblocks": "^1.0.2",
+    "coinblocks": "^1.0.3",
     "coinjs-lib": "^1.0.1",
     "coinnames": "^1.0.1",
     "coinup": "^1.0.0",
@@ -47,6 +47,6 @@
     "node-lmdb": "^0.4.13",
     "node-schedule": "^1.3.0",
     "readline-sync": "^1.4.7",
-    "web3": "^0.20.4"
+    "web3": "^1.0.0-beta.33"
   }
 }
