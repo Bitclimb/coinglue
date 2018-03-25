@@ -1,11 +1,11 @@
-const bitcoin = require('bitcoin');
+const Client = require('bitcoin-core');
 const Web3 = require('src/lib/web3');
 const Transaction = require('ethereumjs-tx');
 const config = require('src/config');
 const coins = config.get('coins');
 const state = require('src/lib/state');
 
-class BtcRpc extends bitcoin.Client {
+class BtcRpc extends Client {
   constructor (opts, c) {
     super(opts);
     this.coin = c;
@@ -24,16 +24,12 @@ class BtcRpc extends bitcoin.Client {
       return err.message;
     }
   }
-  cmd (command, ...args) {
+  async cmd (command, ...args) {
     const start = new Date();
     console.log(`Requesting ${command}`);
-    return new Promise((resolve, reject) => {
-      super.cmd(command, ...args, (err, res) => {
-        if (err) reject(err);
-        resolve(res);
-        console.log(`Response for ${command} received in ${(new Date() - start) / 1000} secs`);
-      });
-    });
+    const resp = await super.command(command, ...args);
+    console.log(`Response for ${command} received in ${(new Date() - start) / 1000} secs`);
+    return resp;
   }
 }
 class EthRpc {
