@@ -416,7 +416,7 @@ exports.validateaddress = async args => {
   } else if (fam === 'eth') {
     checkaddr = await Promise.map(addressArr, addr => ({
       address: addr,
-      isvalid: r.web3.isAddress(addr)
+      isvalid: r.web3.utils.isAddress(addr)
     }));
     for (const addrObj of checkaddr) {
       const indb = addressInDb.includes(addrObj.address);
