@@ -14,6 +14,7 @@ TODO add the rest of the features...
 ## Installation
 (Must be root)
 - Fork this repository then, `npm install` then run the following command `sudo npm link`
+- Then run `sudo mkdir -m 777 /var/log/coinglue`
 
 ## coinglue usage
 - Usage help type `coinglue --help`
