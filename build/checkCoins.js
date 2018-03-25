@@ -5,8 +5,8 @@ const _add = exports._add = async () => {
   const coinsymbol = readlineSync.question('Enter the coin symbol/abbreviate eg. btc [required]: ');
   const host = readlineSync.question('Enter the coin host eg. 127.0.0.1 [required]: ');
   const port = parseInt(readlineSync.question('Enter the coin port eg. 8331 [required]: '));
-  const user = readlineSync.question('Enter the coin rpc usename, leave blank if not required [optional]: ');
-  const pass = readlineSync.question('Enter the coin rpc password, leave blank if not required [optional]: ');
+  const username = readlineSync.question('Enter the coin rpc usename, leave blank if not required [optional]: ');
+  const password = readlineSync.question('Enter the coin rpc password, leave blank if not required [optional]: ');
   const family = readlineSync.question('Enter the coin family eg. for btc ltc doge etc, enter "btc" as the family [required]: ');
   let type = '';
   if (coinsymbol === 'btc' || coinsymbol === 'tbtc') {
@@ -25,8 +25,8 @@ const _add = exports._add = async () => {
       rpc: {
         host,
         port,
-        user,
-        pass,
+        username,
+        password,
         timeout: 30000
       },
       family,
