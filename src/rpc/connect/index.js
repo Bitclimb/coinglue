@@ -26,9 +26,13 @@ class BtcRpc extends Client {
   }
   async cmd (command, ...args) {
     const start = new Date();
-    console.log(`Requesting ${command}`);
+    let cmdname = command;
+    if (Array.isArray(cmdname)) {
+      cmdname = 'Batch';
+    }
+    console.log(`Requesting ${cmdname}`);
     const resp = await super.command(command, ...args);
-    console.log(`Response for ${command} received in ${(new Date() - start) / 1000} secs`);
+    console.log(`Response for ${cmdname} received in ${(new Date() - start) / 1000} secs`);
     return resp;
   }
 }
