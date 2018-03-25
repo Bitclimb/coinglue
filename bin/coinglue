@@ -24,8 +24,8 @@ const pkgjson = require('../package.json');
 const program = require('commander');
 const { spawn } = require('child_process');
 const checkProc = require('build/checkProcess');
-const cglog = `${process.env.CGDIR}/.logs/coinglue.log`;
-const cgerr = `${process.env.CGDIR}/.logs/coinglue.err`;
+const cglog = '/var/log/coinglue/coinglue.log';
+const cgerr = '/var/log/coinglue/coinglue.err';
 
 program
   .usage('<actions> [options]')
