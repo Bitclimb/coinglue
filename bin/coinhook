@@ -4,41 +4,118 @@ const needle = require('needle');
 const path = require('path');
 const logdir = '/var/log/coinglue';
 const errlog = path.resolve(logdir, `coinhook_${Date.now()}.err`);
+const failTxQueue = path.resolve(__dirname, 'txque.json');
 const user = process.env.USER;
 const config = require('../src/config');
 const crypto = require('crypto');
 const fs = require('fs-extra');
 const hook = config.get('hook');
 
+const appendLog = (loc, msg) => {
+  try {
+    fs.appendFileSync(loc, `[${user}] [${new Date()}] ${msg}\n`);
+  } catch (e) {
+    console.error(e.stack || e.message);
+  }
+};
+
+const storeQueue = (tx, coin, hmac) => {
+  try {
+    let txObj = { 'txs': [] };
+    if (fs.existsSync(failTxQueue)) {
+      txObj = fs.readJsonSync(failTxQueue);
+    }
+    txObj.txs.push({ TRX: tx, COIN: coin, HMACSIG: hmac });
+    fs.outputJsonSync(failTxQueue, txObj);
+  } catch (e) {
+    appendLog(errlog, e.message);
+  }
+};
+const getQueueAndDel = () => {
+  try {
+    let txObj = { 'txs': [] };
+    if (!fs.existsSync(failTxQueue)) {
+      return txObj;
+    }
+    txObj = fs.readJsonSync(failTxQueue);
+    fs.removeSync(failTxQueue);
+    return txObj;
+  } catch (e) {
+    appendLog(errlog, e.message);
+  }
+};
+
 if (!hook) {
-  fs.appendFileSync(errlog, `[${user}] [${new Date()}] Hook api not found`);
+  appendLog(errlog, 'Hook api not found');
   process.exit(0);
 }
 if (process.argv.length < 5) {
-  fs.appendFileSync(errlog, `[${user}] [${new Date()}] Got ${process.argv.length} arguments (not 5)`);
+  appendLog(errlog, `Got ${process.argv.length} arguments (not 5)`);
   process.exit(1);
 }
 const TRX = process.argv[2];
 const COIN = process.argv[3];
 const SECRET = process.argv[4];
-const postData = JSON.stringify({ tx: TRX, coin: COIN });
-const HMACSIG = crypto.createHmac('sha1', SECRET).update(postData).digest('hex');
-const logfile = path.resolve(logdir, `coinhook_${COIN}.log`);
-fs.ensureFileSync(logfile);
 
-fs.appendFileSync(logfile, `[${user}] [${new Date()}] [LOG] ${TRX} ${COIN} ${HMACSIG}\n`);
-const options = {
-  headers: {
-    'Content-Type': 'application/json',
-    'Content-Length': Buffer.byteLength(postData),
-    'X-Coinworks-Sig': HMACSIG,
-    'User-Agent': 'Coinworks-WebHook'
+const logfile = path.resolve(logdir, `coinhook_${COIN}.log`);
+
+const sendHook = (trx, coin, hmacSec, cb) => {
+  const postData = JSON.stringify({ tx: trx, coin });
+  let hmacsig;
+  if (hmacSec.length == 64) {
+    hmacsig = hmacSec;
+  } else {
+    hmacsig = crypto.createHmac('sha256', hmacSec).update(postData).digest('hex');
+  }
+  appendLog(logfile, `Sending tx hook txid: ${trx}\n coin: ${coin} hmacsig: ${hmacsig}`);
+  const options = {
+    headers: {
+      'Content-Type': 'application/json',
+      'Content-Length': Buffer.byteLength(postData),
+      'X-Coinworks-Sig': hmacsig,
+      'User-Agent': 'Coinworks-WebHook'
+    }
+  };
+  needle.post(hook.host, postData, options, (err, resp) => {
+    let isFail = false;
+    if (err || resp.statusCode !== 200) {
+      appendLog(errlog, `Problem with request: ${err ? err.message : ''} Status: ${resp.statusCode}`);
+      isFail = true;
+    } else {
+      if (typeof resp.body === 'object' && !Array.isArray(resp.body)) {
+        if (resp.body.success) {
+          appendLog(logfile, `Successful request: ${JSON.stringify(resp.body)}`);
+        } else {
+          appendLog(errlog, `Failed request: ${JSON.stringify(resp.body)}`);
+          isFail = true;
+        }
+      } else {
+        appendLog(errlog, `Invalid Response: ${JSON.stringify(resp.body)}`);
+        isFail = true;
+      }
+    }
+    if (isFail == true) {
+      storeQueue(trx, coin, hmacsig);
+    }
+    cb();
+  });
+};
+
+const processQueue = (txArr) => {
+  if (txArr.length) {
+    const txObj = txArr.shift();
+    sendHook(txObj.TRX, txObj.COIN, txObj.HMACSIG, () => {
+      if (txArr.length) {
+        processQueue(txArr);
+      }
+    });
   }
 };
-needle.post(hook.host, postData, options, (err, resp) => {
-  if (err) {
-    fs.appendFileSync(logfile, `[${user}] [${new Date()}] [ERROR] Problem with request: ${err.message}\n`);
-  } else {
-    fs.appendFileSync(logfile, `[${user}] [${new Date()}] [LOG] Successful request: ${JSON.stringify(resp.body)}`);
+
+sendHook(TRX, COIN, SECRET, () => {
+  let queArr = getQueueAndDel();
+  queArr = queArr.txs;
+  if (queArr.length) {
+    processQueue(queArr);
   }
 });
