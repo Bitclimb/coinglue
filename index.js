@@ -1,4 +1,5 @@
 require('app-module-path/register');
+require('dotenv').config();
 const chalk = require('chalk');
 const colors = {
   stamp: 'cyan',
@@ -18,6 +19,7 @@ if (!process.env.CGDIR) {
   process.exit();
 }
 process.title = 'coinglue';
+
 const j = schedule.scheduleJob('* * * * *', () => {
   if (global.gc) {
     console.log('Running garbage collection');
@@ -26,6 +28,7 @@ const j = schedule.scheduleJob('* * * * *', () => {
     j.cancel();
   }
 });
+
 const logrotate = schedule.scheduleJob('0 */12 * * *', async () => {
   try {
     await logtar();
