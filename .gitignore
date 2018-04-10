@@ -13,3 +13,4 @@ src/services/dev/
 src/services/prod/
 test/
 src/services/ipbandb/
+bin/txque.json
