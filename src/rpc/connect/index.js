@@ -40,6 +40,12 @@ class EthRpc {
   constructor (opts, c) {
     this.coin = c;
     this._web3 = new Web3(`ws://${opts.host}:${opts.port}`);
+    this._web3.eth.extend({
+      methods: [{
+        name: 'getNode',
+        call: 'web3_clientVersion'
+      }]
+    });
   }
   async _updateState () {
     try {
@@ -60,7 +66,8 @@ class EthRpc {
   }
   async cmd (command, ...args) {
     const [api, cmd] = command.split('.');
-    const ethmethod = this._web3[api][cmd];
+
+    const ethmethod = api == 'eth' ? this._web3[api][cmd] : this._web3.eth[api][cmd];
     try {
       if (args.length) {
         return await ethmethod(...args);
@@ -68,7 +75,7 @@ class EthRpc {
         return await ethmethod();
       }
     } catch (err) {
-      console.error(err);
+      console.error('cmd', err.stack || err.message);
       return err;
     }
   }
