@@ -36,7 +36,6 @@ app.start = async () => {
     if (process.send) {
       process.send([0, msg1]);
     }
-    await require('./services/ethblockManager')();
   });
 };
 

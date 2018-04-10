@@ -8,7 +8,7 @@ const estimatefee = require('./connect/estimateFee');
 const utils = require('src/lib/utils');
 const config = require('src/config');
 const state = require('src/lib/state');
-const blockDb = require('src/services/ethblockDb');
+
 const checkState = async coin => {
   let s = state.get(`${coin}_rpc`);
   const { host, port } = config.get('coins')[coin].rpc;
@@ -57,15 +57,15 @@ exports.getinfo = exports.getwalletinfo = async (args) => {
     payload.connections = netinfo.connections;
   } else if (fam === 'eth') {
     const [nodev, ethv, bal] = await Promise.all([
-      r.cmd('version.getNode'),
-      r.cmd('version.getEthereum'),
+      r.cmd('eth.getNode'),
+      r.cmd('eth.getProtocolVersion'),
       r.cmd('eth.getBalance', address)
     ]);
     const [gas, height, peercount, networkactive] = await Promise.all([
       r.cmd('eth.getGasPrice'),
       r.cmd('eth.getBlockNumber'),
       r.cmd('net.getPeerCount'),
-      r.cmd('net.getListening')
+      r.cmd('net.isListening')
     ]);
     const blockinfo = await r.cmd('eth.getBlock', height);
 
@@ -184,7 +184,7 @@ const sendethtomaster = exports.sendethtomaster = async args => {
     const addrFrom = parsed.params[0];
     const addrBal = await r.cmd('eth.getBalance', addrFrom);
     if (addrBal > 0) {
-      const { accountId, index } = addrManager.getAddressInfo(addrFrom);
+      const { accountId, index } = await addrManager.getAddressInfo(addrFrom);
       const addrPair = addrManager.getAddressPair(accountId, index);
       return await ethsend(addrPair.address, addrPair.privkey, 'all', address, r);
     } else {
@@ -307,7 +307,7 @@ const getnewaddress = exports.getnewaddress = async args => {
   }
   const [r, fam] = rpc.connect(parsed.coin);
   const addrManager = AddrManager(parsed.coin);
-  const { address, privkey, index } = addrManager.getNewAddress(parsed.params[0]);
+  const { address, privkey, index } = await addrManager.getNewAddress(parsed.params[0]);
   if (address && privkey) {
     if (fam == 'btc') {
       try {
@@ -329,7 +329,7 @@ const getnewaddress = exports.getnewaddress = async args => {
   return 'Internal error occured';
 };
 
-const getaddress = exports.getaddress = async args => {
+exports.getaddress = async args => {
   const parsed = parser('getaddress', args, 2);
   if (errCodes.includes(parsed)) {
     return errMsg[parsed];
@@ -339,14 +339,15 @@ const getaddress = exports.getaddress = async args => {
   }
   const addrManager = AddrManager(parsed.coin);
 
-  const addrPair = addrManager.getAddress(parsed.params[0]);
+  const addrPair = await addrManager.getAddress(parsed.params[0]);
   if (!addrPair) {
     return await getnewaddress(args);
   }
   return addrPair;
 };
 const getmasteraddress = exports.getmasteraddress = async args => {
-  const addrPair = await getaddress([args[0], 0]);
+  const addrManager = AddrManager(args[0]);
+  const addrPair = addrManager.getAddressPair(0, 0);
   if (addrPair && typeof addrPair !== 'string') {
     state.set(`${args[0]}_address_manager`, 'up');
   } else {
@@ -363,7 +364,7 @@ exports.getaccount = async args => {
     return errMsg.wdr;
   }
   const addrManager = AddrManager(parsed.coin);
-  return addrManager.getAccount(parsed.params[0]);
+  return await addrManager.getAccount(parsed.params[0]);
 };
 const getalladdress = exports.getalladdress = async args => {
   const parsed = parser('getalladdress', args);
@@ -374,10 +375,7 @@ const getalladdress = exports.getalladdress = async args => {
     return errMsg.wdr;
   }
   const addrManager = AddrManager(parsed.coin);
-  const addrArr = addrManager.getAllAddress(parsed.params[0]);
-  // return all addresses except master address
-  addrArr.shift();
-  return addrArr;
+  return await addrManager.getAllAddress(parsed.params[0]);
 };
 exports.getseed = args => {
   const parsed = parser('getseed', args, 0);
@@ -400,7 +398,7 @@ exports.validateaddress = async args => {
   }
   const addrManager = AddrManager(parsed.coin);
   const [r, fam] = rpc.connect(parsed.coin);
-  const addressInDb = addrManager.validateAddress(addressArr);
+  const addressInDb = await addrManager.validateAddress(addressArr);
   const payload = [];
   let checkaddr;
   if (fam === 'btc') {
@@ -460,29 +458,29 @@ exports.listtransactions = async args => {
       return false;
     }
   } else if (fam == 'eth') {
-    const blockdb = blockDb('/ethblocks');
-    const currblock = blockdb.get();
-    try {
-      let txblk = await r.cmd('eth.getBlock', currblock - count, true);
-      txblk = txblk.transactions.filter(txs => {
-        if (txs.to) {
-          return addrManager.getAddressInfo(txs.to);
-        }
-      });
-      if (txblk.length > 0) {
-        for (const ethtx of txblk) {
-          txinfo.push({
-            confirmation: ethtx.blockNumber == null ? 0 : 1,
-            txid: ethtx.hash,
-            address: ethtx.to,
-            amount: Number.parseFloat(r.fromWei(ethtx.value.toString(10), 'ether')).toFixed(8)
-          });
-        }
-      }
-    } catch (err) {
-      console.error(err.stack || err.message);
-      return false;
-    }
+    /* const blockdb = blockDb('/ethblocks');
+     const currblock = blockdb.get();
+     try {
+       let txblk = await r.cmd('eth.getBlock', currblock - count, true);
+       txblk = txblk.transactions.filter(async txs => {
+         if (txs.to) {
+           return await addrManager.getAddressInfo(txs.to);
+         }
+       });
+       if (txblk.length > 0) {
+         for (const ethtx of txblk) {
+           txinfo.push({
+             confirmation: ethtx.blockNumber == null ? 0 : 1,
+             txid: ethtx.hash,
+             address: ethtx.to,
+             amount: Number.parseFloat(r.fromWei(ethtx.value.toString(10), 'ether')).toFixed(8)
+           });
+         }
+       }
+     } catch (err) {
+       console.error(err.stack || err.message);
+       return false;
+     } */
   }
   return txinfo;
 };
