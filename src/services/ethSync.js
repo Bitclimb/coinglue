@@ -17,26 +17,14 @@ const readFile = Promise.promisify(fs.readFile);
 
 const blockPath = resolve(__dirname, 'eth.blk');
 
-const toHex = blknum => {
-  blknum = Number.parseInt(blknum);
-  return `0x${blknum.toString(16)}`;
-};
-
 const getLastBlockProcessed = async () => {
   if (!fs.existsSync(blockPath)) {
     return null;
   }
   const blknum = await readFile(blockPath, 'utf8');
-  return toHex(parseInt(blknum) + 1);
+  return parseInt(blknum) + 1;
 };
-const getLatestBlock = async () => {
-  let latestBlk = await api.eth.blockNumber();
-  if (!latestBlk || typeof latestBlk !== 'number') {
-    console.log('Invalid Latest Blk', latestBlk, 'retrying in 5 seconds');
-    setTimeout(async () => await getLatestBlock(), 5000);
-  }
-  return toHex(latestBlk);
-};
+
 const saveBlock = async blknum => await fs.outputFile(blockPath, parseInt(blknum));
 
 const sendHook = (tx, address, amount) => {
@@ -85,13 +73,12 @@ const processQue = () => {
 const syncer = async (blknum) => {
   const islistenting = await api.net.listening();
   if (islistenting) {
-    blknum = toHex(blknum);
     let lastBlk = await getLastBlockProcessed();
-    lastBlk = !lastBlk ? toHex(blknum) : lastBlk;
+    lastBlk = !lastBlk ? blknum : lastBlk;
 
     let addresses = await db.getAllAddressByCoin('eth');
 
-    console.log('Syncing', parseInt(lastBlk), '=>', parseInt(blknum));
+    console.log('Syncing', lastBlk, '=>', blknum);
     let traceRes = await api.trace.filter({
       'fromBlock': lastBlk,
       'toBlock': blknum,
