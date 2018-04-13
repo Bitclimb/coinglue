@@ -14,7 +14,7 @@ const errlog = path.resolve(logdir, `coinblock_${Date.now()}.err`);
 const user = process.env.USER;
 
 if (process.argv.length < 5) {
-  fs.appendFileSync(errlog, `[${user}] Got ${process.argv.length} arguments (not 5)`);
+  fs.appendFileSync(errlog, `[${user}] Got ${process.argv.length} arguments (not 5)\n`);
   process.exit(1);
 }
 const BLOCKHASH = process.argv[2];
@@ -56,7 +56,7 @@ const batchGetTxOutputs = async txids => {
 const scanblock = async () => {
   if (fam == 'btc') {
     await log(`${BLOCKHASH} ${COIN}`);
-    const blkinfo = await r.cmd('getblock', BLOCKHASH, 1);
+    const blkinfo = await r.cmd('getblock', BLOCKHASH, true);
     const txidarr = await batchGetTxOutputs(blkinfo.tx);
     if (!txidarr || !txidarr.length) {
       await log('No useful transactions to process');
@@ -68,5 +68,6 @@ const scanblock = async () => {
   }
 };
 scanblock().then().catch(err => {
-  console.error('coinblock error', err.stack || err.message);
+  console.error(`coinblock error from ${COIN}`, err.stack || err.message);
+  fs.appendFileSync(errlog, `[${user}] Got error for ${COIN}: ${err.message}\n`);
 });
