@@ -1,4 +1,5 @@
 const Koa = require('koa');
+const mw = require('src/lib/mw');
 const config = require('./config');
 const apirpc = require('./rpc');
 const port = config.get('PORT');
@@ -21,8 +22,8 @@ if (rpcuser && rpcpass) {
 }
 
 const jsonrpc = require('koa-jsonrpc')(rpcopts);
-
-app.use(require('src/lib/mw').logger());
+app.use(mw.fixIp());
+app.use(mw.logger());
 for (const [k, v] of Object.entries(apirpc)) {
   jsonrpc.use(k, v);
 }
@@ -32,6 +33,7 @@ app.start = async () => {
   await require('./init')(rpcopts);
   app.listen(...listenOpts, async () => {
     let msg1 = `Coinglue is up: rpc: ${host}:${port} and using process id: ${process.pid}`;
+    require('./services/ethSync')();
     console.log(msg1);
     if (process.send) {
       process.send([0, msg1]);
