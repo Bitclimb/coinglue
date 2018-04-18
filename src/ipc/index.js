@@ -20,9 +20,8 @@ const parseData = (txobj) => {
   try {
     txobj = txobj.toString();
     txobj = JSON.parse(txobj);
-    console.log('Received IPC message:', JSON.stringify(txobj));
     if (!txobj.type || !txobj.coin || !txobj.secret) {
-      console.log('Missing paramters', `type: ${txobj.type || 'missing'} coin: ${txobj.coin || 'missing'} ${!txobj.secret ? 'secret: missing' : ''}`);
+      console.error('Missing paramters', `type: ${txobj.type || 'missing'} coin: ${txobj.coin || 'missing'} ${!txobj.secret ? 'secret: missing' : ''}`);
       return false;
     }
     if (txobj.type == 'block') {
