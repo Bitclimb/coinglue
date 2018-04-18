@@ -6,16 +6,15 @@ const path = require('path');
 const fs = require('fs');
 const sockpath = path.resolve('/tmp/coinglue.sock');
 
-const cleanSock = () => new Promise((resolve, reject) => {
+const cleanSock = () => {
   try {
     if (fs.existsSync(sockpath)) {
       fs.unlinkSync(sockpath);
     }
   } catch (e) {
-    reject(e);
+    console.error(e);
   }
-  resolve();
-});
+};
 
 const parseData = (txobj) => {
   try {
@@ -53,18 +52,37 @@ const parseData = (txobj) => {
       return false;
     }
   } catch (e) {
-    console.error('Received an invalid IPC data', e);
+    console.error('Received an invalid IPC data', e.message);
+  }
+};
+
+const changeGroup = (sp, cb) => {
+  try {
+    fs.chmodSync(sp, 0o777);
+    cb(null);
+  } catch (e) {
+    cb(`Could not change permission of ${sp} got error: ${e.message}`);
   }
 };
 
 const onReady = () => {
-  console.log('IPC Channel now listening at', sockpath);
-  sock.on('connect', (client) => {
-    client.on('data', data => {
-      client.end();
-      client.destroy();
-      parseData(data);
-    });
+  changeGroup(sockpath, err => {
+    if (err) {
+      console.error(err);
+      console.log('Retrying in 10 seconds...');
+      shutdown().then(() => {
+        setTimeout(listen, 10000);
+      });
+    } else {
+      console.log('IPC Channel now listening at', sockpath);
+      sock.on('connect', (client) => {
+        client.once('data', data => {
+          client.end();
+          client.destroy();
+          parseData(data);
+        });
+      });
+    }
   });
 };
 
@@ -72,21 +90,28 @@ const errorHandler = err => {
   if (err) {
     console.error('Received an error while biding to IPC channel', err.message || err);
     console.log('Retrying in 10 seconds...');
-    sock.close();
-    setTimeout(listen, 10000);
+    if (err.code == 'EADDRINUSE') {
+      cleanSock();
+    }
+    shutdown().then(() => {
+      setTimeout(listen, 10000);
+    });
   }
 };
 
-exports.shutdown = () => {
+const shutdown = exports.shutdown = async () => {
+  console.log('Closing IPC socket', sockpath);
+
   sock.close();
+  cleanSock();
 };
 
 const listen = exports.listen = async () => {
+  cleanSock();
   const connect = async () => {
-    await cleanSock();
     console.log('Starting IPC Channel at', sockpath);
-    sock.bind(sockpath, errorHandler).on('ready', onReady);
-    sock.on('error', errorHandler);
+    sock.bind(sockpath, errorHandler).once('ready', onReady);
+    sock.once('error', errorHandler);
   };
   connect().catch(errorHandler);
 };
