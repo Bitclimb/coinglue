@@ -1,3 +1,4 @@
+require('bitclimb-error').catch();
 require('app-module-path/register');
 require('dotenv').config();
 const chalk = require('chalk');
