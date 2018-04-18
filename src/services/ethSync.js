@@ -2,7 +2,7 @@ const config = require('src/config');
 const needle = require('needle');
 const crypto = require('crypto');
 const ethRpc = config.get('coins.eth.rpc');
-const Api = require('@parity/api');
+const Api = require('bitclimb-parity');
 const provider = new Api.Provider.Ws(`ws://${ethRpc.host}:${ethRpc.port}`);
 const api = new Api(provider);
 
