@@ -101,7 +101,11 @@ const errorHandler = err => {
 
 const shutdown = exports.shutdown = async () => {
   console.log('Closing IPC socket', sockpath);
-
+  const eventNames = sock.eventNames();
+  eventNames.forEach(ev => {
+    console.log('Removing', sock.listenerCount(ev), 'listeners for event', ev);
+    sock.removeAllListeners(ev);
+  });
   sock.close();
   cleanSock();
 };
