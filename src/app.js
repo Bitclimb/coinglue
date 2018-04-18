@@ -33,6 +33,8 @@ app.start = async () => {
   await require('./init')(rpcopts);
   app.listen(...listenOpts, async () => {
     let msg1 = `Coinglue is up: rpc: ${host}:${port} and using process id: ${process.pid}`;
+    const ipc = require('./ipc');
+    ipc.listen();
     require('./services/ethSync')();
     console.log(msg1);
     if (process.send) {
