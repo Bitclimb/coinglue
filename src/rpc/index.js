@@ -195,22 +195,9 @@ const sendethtomaster = exports.sendethtomaster = async args => {
     return 'an error occured';
   }
 };
-const getFee = async (r) => {
-  let fee;
-  try {
-    fee = await r.cmd('estimatesmartfee', 2);
-  } catch (e) {
-    fee = await r.cmd('estimatefee', 2);
-  }
-  return fee;
-};
-const createAndSend = async (coin, r, changeAddress, objTo) => {
-  let fee;
-  if (coin !== 'btc' && coin !== 'tbtc') {
-    fee = await getFee(r);
-  } else {
-    fee = await estimatefee.get();
-  }
+
+const createAndSend = async (r, changeAddress, objTo) => {
+  const fee = await estimatefee.get();
   const rawHex = await r.cmd('createrawtransaction', [], objTo);
   const fundedHex = await r.cmd('fundrawtransaction', rawHex, { changeAddress, feeRate: fee });
   const signedHex = await r.cmd('signrawtransaction', fundedHex.hex);
@@ -243,8 +230,8 @@ exports.sendmany = async args => {
         return 'Insufficient funds';
       }
       let txid;
-      if (parsed.coin !== 'doge') {
-        txid = await createAndSend(parsed.coin, r, address, objTo);
+      if (parsed.coin == 'btc' || parsed.coin == 'tbtc' || parsed.coin == 'test') {
+        txid = await createAndSend( r, address, objTo);
       } else {
         txid = await r.cmd('sendmany', objTo);
       }
@@ -276,14 +263,9 @@ exports.send = async args => {
         console.error(`Insufficient funds to send ${amt} to address ${to}. Wallet only has ${totalBalance}`);
         return 'Insufficient funds';
       }
-      if (typeof amt === 'string' && amt == 'all') {
-        return await r.cmd('sendtoaddress', to, totalBalance, '', '', true);
-      }
       let txid;
-      if (parsed.coin !== 'doge') {
-        const objTo = {};
-        objTo[to] = amt;
-        txid = await createAndSend(parsed.coin, r, address, objTo);
+      if (parsed.coin == 'btc' || parsed.coin == 'tbtc' || parsed.coin == 'test') {
+        txid = await createAndSend( r, address, { [to]: amt});
       } else {
         txid = await r.cmd('sendtoaddress', to, amt);
       }
