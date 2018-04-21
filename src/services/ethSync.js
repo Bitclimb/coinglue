@@ -78,7 +78,7 @@ const syncer = async (blknum) => {
 
     let addresses = await db.getAllAddressByCoin('eth');
 
-    console.log('Syncing', lastBlk, '=>', blknum);
+    console.debug('Syncing', lastBlk, '=>', blknum);
     let traceRes = await api.trace.filter({
       'fromBlock': lastBlk,
       'toBlock': blknum,
@@ -94,7 +94,7 @@ const syncer = async (blknum) => {
       sendHook(tx.txid, tx.to, tx.amount);
     });
   } else {
-    console.log('Failed to connect to Parity Ws, retrying in 5secs');
+    console.warn('Failed to connect to Parity Ws, retrying in 5secs');
     await syncer(blknum);
   }
 };
@@ -107,7 +107,7 @@ const listener = async () => {
         syncer(rep.toNumber());
       });
     } else {
-      console.log('Eth not listening, retrying in 5 secs');
+      console.warn('Eth not listening, retrying in 5 secs');
       setTimeout(listener, 5000);
     }
   } catch (e) {
