@@ -1,20 +1,9 @@
 require('bitclimb-error').catch();
 require('app-module-path/register');
 require('dotenv').config();
-const chalk = require('chalk');
-const colors = {
-  stamp: 'cyan',
-  label (l) {
-    if (l === '[LOG]') {
-      return chalk.green(l);
-    } else {
-      return chalk.redBright(l);
-    }
-  }
-};
-require('console-stamp')(console, { pattern: 'mm-dd-yyyy HH:MM:ss', colors });
+require('src/lib/logger')(console);
 const schedule = require('node-schedule');
-const logtar = require('src/lib/logtar');
+
 if (!process.env.CGDIR) {
   console.error('Please start the wallet service via "coinglue start" command.');
   process.exit();
@@ -30,14 +19,6 @@ const j = schedule.scheduleJob('* * * * *', () => {
   }
 });
 
-const logrotate = schedule.scheduleJob('0 */12 * * *', async () => {
-  try {
-    await logtar();
-  } catch (err) {
-    console.error(err.stack || err.message);
-    logrotate.cancel();
-  }
-});
 require('src/app').start().then(() => {}).catch((err) => {
   console.error(err.stack || err.message);
   process.exit(1);
