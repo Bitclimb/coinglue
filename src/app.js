@@ -23,7 +23,7 @@ if (rpcuser && rpcpass) {
 
 const jsonrpc = require('koa-jsonrpc')(rpcopts);
 app.use(mw.fixIp());
-app.use(mw.logger());
+
 for (const [k, v] of Object.entries(apirpc)) {
   jsonrpc.use(k, v);
 }
