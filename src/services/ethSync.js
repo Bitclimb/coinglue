@@ -28,6 +28,10 @@ const getLastBlockProcessed = async () => {
 const saveBlock = async blknum => await fs.outputFile(blockPath, parseInt(blknum));
 
 const sendHook = (tx, address, amount) => {
+  if (!tx || !address || !amount) {
+    return;
+  }
+  address = address.toLowerCase();
   const postData = JSON.stringify({ tx, address, amount });
   const hmacSig = crypto.createHmac('sha256', hook.pass).update(postData).digest('hex');
   const options = {
