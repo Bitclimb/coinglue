@@ -24,8 +24,9 @@ program
 program
   .command('start')
   .description('starts the wallet service,use --debug for debugging mode')
-  .action(async () => {
-    const subProc = await _start();
+  .option('--debug')
+  .action(async ({ debug }) => {
+    const subProc = await _start(debug);
     if (subProc) {
       subProc.on('message', ([code, msg]) => {
         if (code == 0) {
@@ -154,7 +155,7 @@ if (program.args.length === 0) {
 
 /* Actions */
 
-async function _start () {
+async function _start (debug) {
   try {
     const isrunning = await checkProc('coinglue');
     if (isrunning) {
@@ -165,6 +166,9 @@ async function _start () {
     const checkcoins = await require('build/checkCoins').check();
     const checkhook = await require('build/checkHook').check();
     if (checkseed && checkcoins && checkhook) {
+      if (debug) {
+        process.env.CGDEBUG = 'true';
+      }
       const subopts = {
         env: process.env,
         windowsHide: true,

@@ -1,7 +1,7 @@
 require('bitclimb-error').catch();
 require('app-module-path/register');
 require('dotenv').config();
-require('src/lib/logger')(console);
+require('src/lib/logger')(console, false, process.env.CGDEBUG == 'true');
 const schedule = require('node-schedule');
 
 if (!process.env.CGDIR) {
