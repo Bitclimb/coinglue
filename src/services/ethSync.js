@@ -65,7 +65,9 @@ const sendHook = (tx, address, amount) => {
 const processQue = () => {
   const q = txQue;
   txQue = [];
+  console.info('Processing', q.length, 'tx queues');
   for (const txs of q) {
+    console.info('Sending txHook from queue', tx.txid, tx.to, tx.amount);
     sendHook(txs.tx, txs.address, txs.amount);
   }
 };
@@ -78,7 +80,7 @@ const syncer = async (blknum) => {
 
     let addresses = await db.getAllAddressByCoin('eth');
 
-    console.debug('Syncing', lastBlk, '=>', blknum);
+    console.info('Syncing', lastBlk, '=>', blknum);
     let traceRes = await api.trace.filter({
       'fromBlock': lastBlk,
       'toBlock': blknum,
@@ -91,6 +93,7 @@ const syncer = async (blknum) => {
     }));
     await saveBlock(blknum);
     traceRes.forEach(tx => {
+      console.info('Sending txHook', tx.txid, tx.to, tx.amount);
       sendHook(tx.txid, tx.to, tx.amount);
     });
   } else {
@@ -101,8 +104,10 @@ const syncer = async (blknum) => {
 
 const listener = async () => {
   try {
+    console.info('Ethereum sync starting');
     const islistenting = await api.net.listening();
     if (islistenting) {
+      console.info('Ethereum sync is now listening');
       const sub = await api.subscribe('eth_blockNumber', async (err, rep) => {
         syncer(rep.toNumber());
       });
