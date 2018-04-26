@@ -42,7 +42,7 @@ const sendHook = (tx, address, amount) => {
   needle.post(`${hook.host}/eth`, postData, options, (err, resp) => {
     let isFail = false;
     if (err || resp.statusCode !== 200) {
-      console.error(`Problem with request: ${err ? err.message : ''} Status: ${resp.statusCode}`);
+      console.error(`Problem with request: ${err ? err.message : ''} Status: ${resp ? resp.statusCode : ''}`);
       isFail = true;
     } else {
       if (typeof resp.body === 'object' && !Array.isArray(resp.body)) {
@@ -67,7 +67,7 @@ const processQue = () => {
   txQue = [];
   console.info('Processing', q.length, 'tx queues');
   for (const txs of q) {
-    console.info('Sending txHook from queue', tx.txid, tx.to, tx.amount);
+    console.info('Sending txHook from queue', txs.txid, txs.to, txs.amount);
     sendHook(txs.tx, txs.address, txs.amount);
   }
 };
@@ -79,11 +79,14 @@ const syncer = async (blknum) => {
     lastBlk = !lastBlk ? blknum : lastBlk;
 
     let addresses = await db.getAllAddressByCoin('eth');
-
     console.info('Syncing', lastBlk, '=>', blknum);
+    if (!addresses.length) {
+      await saveBlock(blknum);
+      return;
+    }
     let traceRes = await api.trace.filter({
-      'fromBlock': lastBlk,
-      'toBlock': blknum,
+      'fromBlock': `0x${lastBlk.toString(16)}`,
+      'toBlock': `0x${blknum.toString(16)}`,
       'toAddress': addresses
     });
     traceRes = traceRes.filter(tx => tx.action.value.toNumber() > 0).map(tx => ({
@@ -93,8 +96,10 @@ const syncer = async (blknum) => {
     }));
     await saveBlock(blknum);
     traceRes.forEach(tx => {
-      console.info('Sending txHook', tx.txid, tx.to, tx.amount);
-      sendHook(tx.txid, tx.to, tx.amount);
+      if (tx && tx.txid && tx.to && tx.amount) {
+        console.info('Sending txHook', tx.txid, tx.to, tx.amount);
+        sendHook(tx.txid, tx.to, tx.amount);
+      }
     });
   } else {
     console.warn('Failed to connect to Parity Ws, retrying in 5secs');
