@@ -84,7 +84,9 @@ module.exports = (con, colors = false, local = false) => {
     const debugStream = fs.createWriteStream(debugFile, { flags: 'a' });
     const errorStream = fs.createWriteStream(errorFile, { flags: 'a' });
     const logger = new Console(debugStream, errorStream);
-
+    if (process.env.CGDEBUG == 'true') {
+      levels.push('debug');
+    }
     levels.forEach(o => {
       con[o] = (...args) => {
         const msg = msgFormat(o, args, colors, local);
@@ -93,7 +95,6 @@ module.exports = (con, colors = false, local = false) => {
       };
     });
   } else {
-    levels.push('debug');
     levels.forEach(o => {
       const orig = con[o];
       con[o] = (...args) => {
